@@ -6,12 +6,12 @@
 
 ## Run
 
-```
-$ cargo run --example ${file_name}
+```bash
+cargo run --example ${file_name}
 ```
 
 or
 
-```
-$ cargo test ch4_spin_lock
+```bash
+cargo test ch4_spin_lock
 ```
