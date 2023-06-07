@@ -1,6 +1,6 @@
 #/bin/bash
 # ファイルリストを取得
-FILE_LIST=`ls -1 ./examples`
+FILE_LIST=`ls -1 ./examples | grep -v ch1-11-thread-parking.rs | grep -v ch1-12-condvar.rs`
 
 for f in ${FILE_LIST}
 do
