@@ -15,3 +15,7 @@ or
 ```bash
 cargo test ch4_spin_lock
 ```
+
+## Reference
+
+- [Rustの `Arc` を読む(4): アトミック変数とメモリ順序](https://qiita.com/qnighy/items/b3b728adf5e4a3f1a841)
