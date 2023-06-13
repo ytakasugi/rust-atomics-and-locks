@@ -8,7 +8,10 @@ static LOCKED: AtomicBool = AtomicBool::new(false);
 fn f() {
     // `LOCKED`がfalseの場合、つまり`compare_exchange`がOk(bool)`を返した場合、DATAに`!`をpushする
     // 現在の値はfalseなので、比較は成功し、LOCKEDをtrueに変更する
-    if LOCKED.compare_exchange(false, true, Acquire, Relaxed).is_ok() {
+    if LOCKED
+        .compare_exchange(false, true, Acquire, Relaxed)
+        .is_ok()
+    {
         unsafe { DATA.push('!') }
         // `LOCKED`をfalseに変更
         LOCKED.store(false, Release);

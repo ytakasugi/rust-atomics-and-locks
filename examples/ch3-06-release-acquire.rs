@@ -13,7 +13,8 @@ fn main() {
         DATA.store(123, Relaxed);
         READY.store(true, Release); // Everything from before this store ..
     });
-    while !READY.load(Acquire) { // .. is visible after this loads `true`.
+    while !READY.load(Acquire) {
+        // .. is visible after this loads `true`.
         thread::sleep(Duration::from_millis(100));
         println!("waiting...");
     }

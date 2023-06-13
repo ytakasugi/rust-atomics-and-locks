@@ -16,5 +16,4 @@ fn main() {
     X.store(2, Relaxed);
     t.join().unwrap();
     X.store(3, Relaxed);
-
 }

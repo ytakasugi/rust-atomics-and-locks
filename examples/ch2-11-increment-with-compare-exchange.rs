@@ -11,7 +11,7 @@ fn increment(a: &AtomicU32) {
             Err(v) => current = v,
         }
     }
-;}
+}
 
 fn main() {
     let a = AtomicU32::new(0);

@@ -3,11 +3,13 @@ use std::thread;
 fn main() {
     let numbers = vec![1, 2, 3];
 
-    thread::spawn(move || { 
+    thread::spawn(move || {
         for n in &numbers {
             println!("{n}");
         }
-    }).join().unwrap();
+    })
+    .join()
+    .unwrap();
 
     let arr = Vec::from_iter(0..=1000);
 

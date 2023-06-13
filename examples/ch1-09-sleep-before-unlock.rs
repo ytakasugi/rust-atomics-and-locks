@@ -11,7 +11,7 @@ fn main() {
                 for _ in 0..100 {
                     *guard += 1;
                 }
-                thread::sleep(Duration::from_secs(1)); 
+                thread::sleep(Duration::from_secs(1));
             });
         }
     });

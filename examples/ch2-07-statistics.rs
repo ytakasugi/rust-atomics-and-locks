@@ -1,5 +1,5 @@
-use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::AtomicU64;
+use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::thread;
 use std::time::Duration;
@@ -30,7 +30,9 @@ fn main() {
             let total_time = Duration::from_micros(total_time.load(Relaxed));
             let max_time = Duration::from_micros(max_time.load(Relaxed));
             let n = num_done.load(Relaxed);
-            if n == 100 { break; }
+            if n == 100 {
+                break;
+            }
             if n == 0 {
                 println!("Working.. nothing done yet.");
             } else {

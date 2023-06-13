@@ -21,7 +21,9 @@ fn main() {
         // The main thread shows status updates.
         loop {
             let n = num_done.load(Relaxed);
-            if n == 100 { break; }
+            if n == 100 {
+                break;
+            }
             println!("Working.. {n}/100 done");
             thread::park_timeout(Duration::from_secs(1));
         }

@@ -25,5 +25,5 @@ fn main() {
 
     println!("overflowed!");
 
-    dbg!(allocate_new_id()); 
+    dbg!(allocate_new_id());
 }

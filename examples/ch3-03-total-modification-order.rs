@@ -1,7 +1,4 @@
-use std::sync::atomic::{
-    AtomicI32,
-    Ordering::Relaxed
-};
+use std::sync::atomic::{AtomicI32, Ordering::Relaxed};
 use std::thread;
 
 static X: AtomicI32 = AtomicI32::new(0);
@@ -9,7 +6,7 @@ static X: AtomicI32 = AtomicI32::new(0);
 fn a() {
     X.fetch_add(5, Relaxed);
     X.fetch_add(10, Relaxed);
-} 
+}
 
 fn b() {
     let a = X.load(Relaxed);
