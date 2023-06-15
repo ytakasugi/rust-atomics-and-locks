@@ -251,6 +251,33 @@ x86-64では、`mov`命令が再び使用され、今度はメモリから32ビ�
 
 ## Read-Modify-Write Operations
 
+加算のようなリード・モディファイ・ライトの操作では、さらに興味深いことが起こります。本章の前半で述べたように、非原子的な読み取り-変更-書き込み操作は、ARM64のようなRISCアーキテクチャでは通常3つの別々の命令（読み取り、変更、書き込み）にコンパイルされますが、x86-64などのCISCアーキテクチャではしばしば1つの命令で実行することが可能です。この短い例では、そのことを実証しています：
+
+- Rust Source
+
+```rust
+pub fn a(x: &mut i32) {
+    *x += 10;
+}
+```
+
+- Compiled x86-64
+
+```text
+a:
+    add dword ptr [rdi], 10
+    ret
+```
+
+- Compiled ARM64
+
+```text
+a:
+    ldr w8, [x0]
+    add w8, w8, #10
+    str w8, [x0]
+    ret
+```
 
 
-![](./images/Fig7-1.svg)
+![Figure7-1](./images/Fig7-1.svg)
