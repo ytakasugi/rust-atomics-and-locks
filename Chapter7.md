@@ -519,7 +519,6 @@ a:
 
 予想通り、失敗時にLL/SCループを再開するための`cbnz`（`compare and branch on nonzero`）命令が追加されました。さらに、ループをできるだけ短くするために、`mov`命令がループの外に移動されました。
 
-
 ---
 
 ### Note
@@ -930,8 +929,351 @@ a:
 
 以前のような通常の`mov`命令では、`SeqCst`ストアには不十分で、後のロード操作で並び替えができるため、グローバルに一貫した順序が崩れてしまうからです。ロードも行う操作に変更することで、ロードする値にはこだわらないものの、後のメモリ操作で命令が並び替えられないという保証が追加され、問題を解決することができます。
 
-x86-64では、`store`操作は、`SeqCst`と弱いメモリ順序の違いがある唯一のアトミック操作である。つまり、x86-64では、ストア以外のSeqCst操作は、`Release`、`Acquire`、`AcqRel`、さらには`Relaxed`操作と同じように安価である。あるいは、x86-64では、`store`以外の`Relaxed`オペレーションは`SeqCst`オペレーションと同じくらい高価になります。
+x86-64では、`store`操作は、`SeqCst`と弱いメモリ順序の違いがある唯一のアトミック操作である。つまり、x86-64では、ストア以外の`SeqCst`操作は、`Release`、`Acquire`、`AcqRel`、さらには`Relaxed`操作と同じように安価である。あるいは、x86-64では、`store`以外の`Relaxed`オペレーションは`SeqCst`オペレーションと同じくらい高価になります。
 
 ### ARM64: Weakly Ordered
+
+ARM64のような弱順序アーキテクチャでは、すべてのメモリ操作が互いに並び替えられる可能性があります。つまり、x86-64とは異なり、`Acquire`と`Release`操作は`Relaxed`操作と同一にはならない。
+
+ARM64で`Release`、`Acquire`、`AcqRel`について何が起こるか見てみましょう：
+
+- Rust Source(`Release`)
+
+```rust
+pub fn a(x: &AtomicI32) {
+    x.store(0, Release);
+}
+```
+
+- Compiled ARM64(`Release`)
+
+```text
+a:
+    stlr wzr, [x0] // 1
+    ret
+```
+
+- Rust Source(`Acquire`)
+
+```rust
+pub fn a(x: &AtomicI32) -> i32 {
+    x.load(Acquire)
+}
+```
+
+- Compiled ARM64(`Acquire`)
+
+```text
+a:
+    ldar w0, [x0] // 2
+    ret
+```
+
+- Rust Source(`AcqRel`)
+
+```rust
+pub fn a(x: &AtomicI32) {
+    x.fetch_add(10, AcqRel);
+}
+```
+
+- Compiled ARM64(`AcqRel`)
+
+```text
+a:
+.L1:
+    ldaxr w8, [x0] // 3
+    add w9, w8, #10
+    stlxr w10, w9, [x0] // 4
+    cbnz w10, .L1
+    ret
+```
+
+先に見た`Relaxed`版と比較すると、その変化は非常に微妙なものです：
+
+1. `str`（store register）は、`stlr`（store-release register）になりました。
+2. `ldr`（load register）は、`ldar`（load-acquire register）に変更されました。
+3. `ldxr`（load exclusive register）は、`ldaxr`（load-acquire exclusive registe）に変更されます。
+4. `stxr`（store exclusive register）は、`stlxr`（load-acquire exclusive register）に変更されました。
+
+このように、ARM64では、ロード命令とストア命令のうち、`Acquire`と`Release`の順番に特別なバージョンが用意されています。`ldr`命令や`ldxr`命令とは異なり、`ldar`命令や`ldxar`命令は、後のメモリ操作で並び替えられることはありません。同様に、`str`または`stxr`命令とは異なり、`stlr`または`stxlr`命令は、以前のメモリ操作で再順序付けされることはありません。
+
+`Release`と`Acquire`のセマンティクスに必要な制限に加えて、特別な`Acquire`と`Release`命令はどれも他の特別な命令と並び替えられることがないため、`SeqCst`にも適しています。
+
+以下に示すように、`SeqCst`にアップグレードすると、以前と全く同じアセンブリになります：
+
+- Rust Source(`SeqCst`)
+
+```rust
+pub fn a(x: &AtomicI32) {
+    x.store(0, SeqCst);
+}
+```
+
+- Compiled ARM64(`SeqCst`)
+
+```text
+a:
+    stlr wzr, [x0]
+    ret
+```
+
+- Rust Source(`SeqCst`)
+
+```rust
+pub fn a(x: &AtomicI32) -> i32 {
+    x.load(SeqCst)
+}
+```
+
+- Compiled ARM64(`SeqCst`)
+
+```text
+a:
+    ldar w0, [x0]
+    ret
+```
+
+- Rust Source(`SeqCst`)
+
+```rust
+pub fn a(x: &AtomicI32) {
+    x.fetch_add(10, SeqCst);
+}
+```
+
+- Compiled ARM64(`SeqCst`)
+
+```text
+a:
+.L1:
+    ldaxr w8, [x0]
+    add w9, w8, #10
+    stlxr w10, w9, [x0]
+    cbnz w10, .L1
+    ret
+```
+
+つまり、ARM64では、`sequentially consistent`オペレーションは、`Acquire`と`Release`オペレーションと全く同じように安いということです。というか、ARM64の`Acquire`、`Release`、`AcqRel`オペレーションは、`SeqCst`と同じくらい高価であることを意味しています。ただし、x86-64とは異なり、`Relaxed`演算は必要以上に強い順序保証にならないため、比較的安価である。
+
+---
+
+### Note
+
+ARMv8.1アトミック命令」で説明したように、ARM64のARMv8.1バージョンでは、`ldxr/stxr`ループの代わりに`ldadd`（`load＆add`）などのアトミック演算を行うCISCスタイルの命令が含まれています。
+
+ロードとストアの操作に acquireとreleaseのセマンティクスを持つ特別なバージョンがあるように、これらの命令にも、より強いメモリ順序のためのバリエーションがあります。これらの命令にはロードとストアの両方が含まれるため、それぞれrelease（`-l`）、 acquire（`-a`）、releaseと acquireを組み合わせたセマンティクス（`-al`）の3種類のバリエーションが追加されています。
+
+例えば、`ldadd`には、`ldaddl`、`ldadda`、`ldaddal`がある。同様に、`cas`命令には、`casl`、`casa`、`casal`というバリエーションがある。
+
+ロード命令とストア命令のように、releaseとacquireの組み合わせ（`-al`）でも`SeqCst`操作に十分対応できる。
+
+### An Experiment
+
+強制命令アーキテクチャが普及した結果、ある種のメモリ順序のバグが発見されないままになってし まうという残念なことがあります。`Acquire`や`Release`が必要な場合に`Relaxed`を使うのは間違っていますが、x86-64では、コンパイラがアトミック演算を並べ替えないという前提で、偶然にもうまく動作してしまう可能性があります。
+
+>物事の順序を狂わせることができるのは、プロセッサだけではないことを忘れないでください。コンパイラも、メモリの順序制約を考慮する限り、生成する命令の順序を変更することができます。
+>
+>実際には、コンパイラはアトミック演算を含む最適化について非常に保守的である傾向がありますが、将来的には変わる可能性が大いにあります。
+
+つまり、x86-64では全く問題なく動作するのに、ARM64プロセッサ用にコンパイルして実行すると壊れてしまうような、誤った並行コードを簡単に書くことができる。
+
+では、実際にそのようなことをやってみましょう。
+
+スピンロックで保護されたカウンターを作成し、すべてのメモリ順序をRelaxedに変更します。カスタムタイプや安全でないコードを作成する必要はありません。代わりに、ロックに`AtomicBool`を、カウンターに`AtomicUsiz`e`を使用することにしましょう。
+
+コンパイラが操作の順序を入れ替えないようにするために、`std::sync::compiler_fence()`関数を使って、プロセッサには知らせずに、`Acquire`または`Release`とすべき操作をコンパイラに知らせます。
+
+4つのスレッドで、ロック、カウンターのインクリメント、アンロックをそれぞれ100万回ずつ繰り返すようにします。これをまとめると、次のようなコードになります：
+
+```rust
+fn main() {
+    let locked = AtomicBool::new(false);
+    let counter = AtomicUsize::new(0);
+
+    thread::scope(|s| {
+        // Spawn four threads, that each iterate a million times.
+        for _ in 0..4 {
+            s.spawn(|| for _ in 0..1_000_000 {
+                // Acquire the lock, using the wrong memory ordering.
+                while locked.swap(true, Relaxed) {}
+                compiler_fence(Acquire);
+
+                // Non-atomically increment the counter, while holding the lock.
+                let old = counter.load(Relaxed);
+                let new = old + 1;
+                counter.store(new, Relaxed);
+
+                // Release the lock, using the wrong memory ordering.
+                compiler_fence(Release);
+                locked.store(false, Relaxed);
+            });
+        }
+    });
+
+    println!("{}", counter.into_inner());
+}
+```
+
+ロックが適切に機能すれば、カウンターの最終値は正確に400万になると予想されます。カウンターのインクリメントは、スピンロックに問題があるとインクリメントが失敗し、カウンターの合計値が低くなることを防ぐために、1回の`fetch_add`ではなく、別々の`load`と`store`で、非アトミック方式で行われることに注意してください。
+
+このプログラムをx86-64プロセッサ搭載のコンピュータで数回実行すると、次のようになります：
+
+```text
+4000000
+4000000
+4000000
+```
+
+予想通り、リリースと獲得セマンティクスを「タダ」で手に入れることができ、こちらのミスで問題が発生することはありません。
+
+これを2021年発売のAndroid携帯と、ARM64プロセッサを搭載したRaspberry Pi 3 model Bで試してみても、同じ出力になります：
+
+```text
+4000000
+4000000
+4000000
+```
+
+このことから、すべてのARM64プロセッサがすべての形式の命令並び替えを利用しているわけではないことがわかりますが、この実験から多くを推測することはできません。
+
+ARM64ベースのApple M1プロセッサを搭載した2021年製のApple iMacで試したところ、異なる結果が得られました：
+
+```text
+3988255
+3982153
+3984205
+```
+
+これまで隠していたミスが、突然、実際の問題になってしまったのです。この問題は、弱い秩序を持つシステムでのみ見られる問題です。カウンターの誤差は約0.4%で、このような問題がいかに微妙なものであるかを示しています。現実の世界では、このような問題は長い間発見されないかもしれません。
+
+### Memory Fences
+
+メモリ順序に関連する命令で、まだ見ていないものが1種類あります。memory fenceです。memory fenceやmemory barrier命令は、第3章の「Fences」で説明した`std::sync::atomic::fence`を表すのに使われます。
+
+前述したように、x86-64とARM64のメモリ順序は、すべて命令の並べ替えにあります。`fence`命令は、ある種の命令がそれを越えて並べ替えられるのを防ぐ。
+
+acquire fenceは、先行するloadオペレーションが、それに続くメモリ・オペレーションと一緒に並び替えられるのを防ぐ必要があります。同様に、 release fenceは、後続のstore操作と先行するメモリ操作の順序が入れ替わるのを防がなければなりません。順次一貫性のあるfenceは、それに先行するすべてのメモリ操作が、fenceの後のメモリ操作で並び替えられるのを防がなければならない。
+
+x86-64では、基本的なメモリ順序のセマンティクスは、すでに獲得と解放のfenceの必要性を満たしています。このアーキテクチャでは、これらのfenceが防ぐタイプの並べ替えは、関係なく許可されません。
+
+それでは早速、x86-64とARM64の両方で、4種類のfenceがどのような命令にコンパイルされるかを見てみましょう：
+
+- Rust Source(`Acquire`)
+
+```rust
+pub fn a() {
+    fence(Acquire);
+}
+```
+
+- Compiled x86-64(`Acquire`)
+
+```text
+a:
+    ret
+```
+
+- Compiled ARM64(`Acquire`)
+
+```text
+a:
+    dmb ishld
+    ret
+```
+
+- Rust Source(`Release`)
+
+```rust
+pub fn a() {
+    fence(Release);
+}
+```
+
+- Compiled x86-64(`Release`)
+
+```text
+a:
+    ret
+```
+
+- Compiled ARM64(`Release`)
+
+```text
+a:
+    dmb ish
+    ret
+```
+
+- Rust Source(`AcqRel`)
+
+```rust
+pub fn a() {
+    fence(AcqRel);
+}
+```
+
+- Compiled x86-64(`AcqRel`)
+
+```text
+a:
+    ret
+```
+
+- Compiled ARM64(`AcqRel`)
+
+```text
+a:
+    dmb ish
+    ret
+```
+
+- Rust Source(`SeqCst`)
+
+```rust
+pub fn a() {
+    fence(SeqCst);
+}
+```
+
+- Compiled x86-64(`SeqCst`)
+
+```text
+a:
+    mfence
+    ret
+```
+
+- Compiled ARM64(`SeqCst`)
+
+```text
+a:
+    dmb ish
+    ret
+```
+
+
+当然のことながら、x86-64のreleaseとacquireのfenceは、何の命令にもならない。このアーキテクチャでは、releaseとacquireセマンティクスを「無料で」手に入れることができるのです。`SeqCst`フェンスだけが、mfence（memory fence）命令を生成する。この命令は、それ以前のすべてのメモリ操作が完了したことを確認してから続行します。
+
+ARM64では、同等の命令は`dmb ish`（data memory barrier、inner shared domain）である。x86-64とは異なり、このアーキテクチャでは暗黙のうちに獲得と解放のセマンティクスを提供しないため、`Release`と`AcqRel`にも使用されます。Acquire については、`dmb ishld` という少し影響の少ない変種が使用されます。この変種は、loadオペレーションが完了するのを待つだけで、先行するstoreオペレーションがそれを過ぎて再順序付けされるのを自由に許可します。
+
+アトミック操作の場合と同様に、x86-64ではreleaseとacquireのfenceが「無料」で提供されるのに対し、ARM64ではシーケンシャルに一貫したfenceがrelease fenceと同じコストで提供されていることがわかります。
+
+## 概要
+
+- x86-64とARM64では、リラックスしたload と store操作は、非アトミックな同等の操作と同じです。
+- x86-64（およびARMv8.1以降のARM64）で一般的なアトミックなfetch-and-modifyおよびcompare-and-exchange演算は、独自の命令を持っています。
+- x86-64では、同等の命令が存在しないアトミック演算は、compare-and-exchangeループにコンパイルされます。
+- ARM64では、アトミック演算はロードリンク/ストアコンディショナルループで表現することができます。
+- キャッシュは、多くの場合64バイトの大きさのキャッシュライン上で動作します。
+- キャッシュは、ライトスルーやMESIなどのキャッシュコヒーレンスプロトコルで整合性が保たれる。
+- パディングは、例えば`#[repr(align(64)]` を通して、誤った共有を防止して性能を向上させるのに有用であることがあります。
+- ロードオペレーションは、失敗したcompare-and-exchangeオペレーションよりもかなり安価であることがあります。
+- 命令の並べ替えは、シングルスレッド・プログラム内では見えません。
+- x86-64やARM64を含むほとんどのアーキテクチャでは、メモリ順序は特定のタイプの命令並べ替えを防止するためのものです。
+- x86-64では、すべてのメモリ操作に獲得と解放のセマンティクスがあり、リラックスした操作と同じように安価または高価にすることができます。storeとfence以外のすべての操作は、追加コストなしでシーケンシャルに一貫したセマンティクスを備えています。
+- ARM64では、獲得と解放のセマンティクスは、Relax操作ほど安価ではありませんが、追加コストなしで順次一貫したセマンティクスを含んでいます。
+
+この章で見てきたアセンブリ命令の概要は、図7-1にあります。
 
 ![Figure7-1](./images/Fig7-1.svg)
