@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 static mut DATA: [u64; 10] = [0; 10];
-
+#[allow(clippy::declare_interior_mutable_const)]
 const ATOMIC_FALSE: AtomicBool = AtomicBool::new(false);
 static READY: [AtomicBool; 10] = [ATOMIC_FALSE; 10];
 

@@ -20,6 +20,7 @@ fn main() {
     std::panic::set_hook(Box::new(|_| {}));
 
     for _ in 1000..=u32::MAX {
+        #[allow(clippy::redundant_closure)]
         let _ = std::panic::catch_unwind(|| allocate_new_id());
     }
 
