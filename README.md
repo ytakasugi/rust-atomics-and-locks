@@ -19,6 +19,7 @@ cargo test ch4_spin_lock
 ## Reference
 
 - [Rustの `Arc` を読む(4): アトミック変数とメモリ順序](https://qiita.com/qnighy/items/b3b728adf5e4a3f1a841)
+- [データ競合と happens-before 関係](https://uchan.hateblo.jp/entry/2020/06/19/185152)
 - コンピュータアーキテクチャの話
   - [メモリのアクセス時間とローカルメモリ](https://news.mynavi.jp/techplus/article/architecture-135/)
   - [ローカルメモリの2つの方法](https://news.mynavi.jp/techplus/article/architecture-136/)
