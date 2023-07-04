@@ -33,4 +33,25 @@ cargo test ch4_spin_lock
   - [メモリの管理機構](https://news.mynavi.jp/techplus/article/architecture-144/)
   - [フラグメンテーションとその解決法](https://news.mynavi.jp/techplus/article/architecture-145/)
   - [TLBの構造とTLBミスへの対応](https://news.mynavi.jp/techplus/article/architecture-146/)
+    - [仮想メモリーを支えるもうひとつのキャッシュ TLB](https://ascii.jp/elem/000/000/567/567889/)
   - [仮想アドレスキャッシュと物理アドレスキャッシュ](https://news.mynavi.jp/techplus/article/architecture-147/)
+
+## 半順序と全順序
+
+以下の性質を考える。ここで P は集合であり、「`≤`」を P 上で定義された二項関係(二変数関係)とする。
+
+1. 反射律：P の任意の元(集合を構成する要素) `a` に対し、`a ≤ a` が成り立つ。
+2. 反対称律：`a ≤ b` かつ `b ≤ a` ならば `a = b`
+3. 推移律：`a ≤ b` かつ `b ≤ c` ならば `a ≤ c`
+4. 完全律（比較可能）：`a ≤ b`または `b ≤ a` の何れかが必ず成り立つ
+
+半順序は、反射律と推移律を満たし、且つ反対称律を満たすことをいう。
+全順序は、半順序を満たし、且つ完全律(全順序律)を満たすことをいう。
+
+## 推移閉包
+
+推移閉包とは、集合Pにおける二項関係Rに対し、Rを含むP上の最小の推移関係を意味する。
+
+## 推移関係
+
+集合Pの二項関係Rが推移的であるとは、Xの任意の元a、b、cについて、aとbにRが成り立ち、bとcにRが成り立つとき、aとcにもRが成り立つことをいう。
