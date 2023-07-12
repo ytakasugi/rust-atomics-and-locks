@@ -33,8 +33,21 @@ cargo test ch4_spin_lock
   - [メモリの管理機構](https://news.mynavi.jp/techplus/article/architecture-144/)
   - [フラグメンテーションとその解決法](https://news.mynavi.jp/techplus/article/architecture-145/)
   - [TLBの構造とTLBミスへの対応](https://news.mynavi.jp/techplus/article/architecture-146/)
-    - [仮想メモリーを支えるもうひとつのキャッシュ TLB](https://ascii.jp/elem/000/000/567/567889/)
   - [仮想アドレスキャッシュと物理アドレスキャッシュ](https://news.mynavi.jp/techplus/article/architecture-147/)
+- ロードマップでわかる！当世プロセッサー事情
+    - [CPU高速化の常套手段 パイプライン処理の基本 【その1】](https://ascii.jp/elem/000/000/552/552029/)
+    - [CPU高速化の常套手段 パイプライン処理の基本 【その2】](https://ascii.jp/elem/000/000/553/553627/)
+    - [スーパースカラーによる高速化とx86の問題点とは](https://ascii.jp/elem/000/000/555/555471/)
+    - [命令の実行順を変えて高速化するアウトオブオーダー](https://ascii.jp/elem/000/000/557/557227/)
+    - [x86を高速化する切り札技術「命令変換」の仕組み](https://ascii.jp/elem/000/000/558/558788/)
+    - [Core iシリーズにも使われる「SMT」の利点と欠点](https://ascii.jp/elem/000/000/560/560386/)
+    - [CPU性能向上のトレンド　マルチコアの理論と限界](https://ascii.jp/elem/000/000/561/561198/)
+    - [CPUとメモリーの速度差を埋めるキャッシュの基礎知識](https://ascii.jp/elem/000/000/563/563800/)
+    - [トランジスター数と性能を秤にかけるキャッシュ](https://ascii.jp/elem/000/000/566/566519/)
+    - [仮想メモリーを支えるもうひとつのキャッシュ TLB](https://ascii.jp/elem/000/000/567/567889/)
+    - [キャッシュの実装方式から見える AMDとインテルの置かれた状況](https://ascii.jp/elem/000/000/569/569422/)
+    - [マルチコアCPUのキャッシュで問題となるコヒーレンシと解決策](https://ascii.jp/elem/000/000/571/571155/)
+
 
 ## 半順序と全順序
 
