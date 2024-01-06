@@ -1,5 +1,5 @@
-use std::ops::{Deref, DerefMut};
 use std::cell::UnsafeCell;
+use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::{Acquire, Release};
 
@@ -36,7 +36,7 @@ impl<T> SpinLock<T> {
 impl<T> Deref for Guard<'_, T> {
     type Target = T;
     fn deref(&self) -> &T {
-        unsafe { &*self.lock.value.get() }        
+        unsafe { &*self.lock.value.get() }
     }
 }
 
@@ -57,7 +57,7 @@ fn main() {
     use std::thread;
 
     let x = SpinLock::new(Vec::new());
-    thread::scope(|s|{
+    thread::scope(|s| {
         s.spawn(|| x.lock().push(1));
         s.spawn(|| {
             let mut g = x.lock();
